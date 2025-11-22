@@ -75,18 +75,24 @@ const callSiliconFlow = async (config: AIConfig, systemPrompt: string, userMessa
   }
 };
 
+// --- Shared AI Helper ---
+const callAI = async (systemPrompt: string, userPrompt: string): Promise<string> => {
+    const config = getAIConfig();
+    if (!config.apiKey) throw new Error("请先配置 API Key");
+    
+    if (config.provider === 'siliconflow') {
+        return callSiliconFlow(config, systemPrompt, userPrompt);
+    } else {
+        return callGemini(config, systemPrompt, userPrompt);
+    }
+};
+
 // --- Main Service Functions ---
 
 export const askGeminiTutor = async (
   question: string,
   context: string = ''
 ): Promise<string> => {
-  const config = getAIConfig();
-  
-  if (!config.apiKey) {
-    return "请先在设置中配置 API Key 才能使用 AI 功能。";
-  }
-
   const systemPrompt = `
     You are a friendly and patient Japanese language tutor named "Sensei AI". 
     The user is a native Chinese speaker learning Japanese (specifically Minna no Nihongo).
@@ -101,23 +107,13 @@ export const askGeminiTutor = async (
   `;
 
   try {
-    if (config.provider === 'siliconflow') {
-      return await callSiliconFlow(config, systemPrompt, question);
-    } else {
-      return await callGemini(config, systemPrompt, question);
-    }
+    return await callAI(systemPrompt, question);
   } catch (error: any) {
     return `连接 AI 服务失败: ${error.message}。请检查设置。`;
   }
 };
 
 export const generateWordExamples = async (word: string, meaning: string): Promise<string> => {
-  const config = getAIConfig();
-  
-  if (!config.apiKey) {
-    return "请配置 API Key 以生成例句。";
-  }
-
   const prompt = `
     作为日语初学者（N5/N4水平）的老师，请用日语单词 "${word}" (含义: ${meaning}) 造 2 个简单易懂的例句。
     
@@ -133,12 +129,88 @@ export const generateWordExamples = async (word: string, meaning: string): Promi
   `;
 
   try {
-    if (config.provider === 'siliconflow') {
-      return await callSiliconFlow(config, "You are a Japanese teacher.", prompt);
-    } else {
-      return await callGemini(config, "You are a Japanese teacher.", prompt);
-    }
+    return await callAI("You are a Japanese teacher.", prompt);
   } catch (error) {
       return '生成例句失败，请检查 API Key 或网络设置。';
   }
+};
+
+// --- Speaking Exam AI Functions ---
+
+export const startRolePlay = async (topic: string): Promise<string> => {
+    const system = `
+      You are a Japanese language teacher at Hokkaido University.
+      We are doing a roleplay practice for an oral exam.
+      Topic: ${topic}.
+      
+      Your goal: Start the conversation with a question or greeting related to the topic.
+      Constraint: Speak ONLY in Japanese. Keep vocabulary simple (N4/N5 level).
+      Output: Only the opening sentence.
+    `;
+    try {
+        return await callAI(system, "Start the conversation.");
+    } catch (e) {
+        return "すみません、ちょっと待ちます。（AI 连接失败）";
+    }
+};
+
+export const continueRolePlay = async (history: {role: string, text: string}[], userText: string): Promise<string> => {
+    const system = `
+      You are a Japanese language teacher at Hokkaido University conducting an oral exam roleplay.
+      Level: JLPT N4/N5 (Beginner).
+      Constraint: Speak ONLY in Japanese. Keep responses concise and simple.
+      Goal: Respond to the student naturally. Correct them politely if they make a huge mistake, otherwise keep the flow.
+    `;
+    
+    // Build context string from history
+    const conversation = history.map(h => `${h.role === 'model' ? 'Teacher' : 'Student'}: ${h.text}`).join('\n');
+    const prompt = `${conversation}\nStudent: ${userText}\nTeacher: (Respond in Japanese)`;
+    
+    try {
+        return await callAI(system, prompt);
+    } catch (e) {
+        return "（AI 响应失败）";
+    }
+};
+
+export const generateSpeakingQuestion = async (): Promise<{q: string, a: string}> => {
+    const system = `You are a Japanese oral exam proctor.`;
+    const prompt = `
+      Generate ONE random interview question for a Hokkaido University exchange student (N4/N5 level). 
+      Topics: Sapporo life, hobbies, weekend plans, university studies, food.
+      
+      Return ONLY a valid JSON object with no markdown formatting:
+      { "q": "Question in Japanese", "a": "Simple sample answer in Japanese" }
+    `;
+    
+    try {
+        const text = await callAI(system, prompt);
+        const cleanText = text.replace(/```json|```/g, '').trim();
+        return JSON.parse(cleanText);
+    } catch (e) {
+        console.error(e);
+        return { q: '札幌の冬は どうですか。', a: 'とても 寒いです。でも、雪が きれいです。' }; // Fallback
+    }
+};
+
+export const evaluateSpeakingAnswer = async (question: string, answer: string): Promise<string> => {
+    const system = `You are a helpful Japanese tutor.`;
+    const prompt = `
+      Context: JLPT N4/N5 Speaking Practice.
+      Question: ${question}
+      Student Answer: ${answer}
+      
+      Please evaluate this answer.
+      1. Is it grammatically correct?
+      2. Is it natural?
+      3. If there are mistakes, provide the corrected Japanese sentence.
+      
+      Reply in Chinese (Simplified). Keep it concise and encouraging.
+    `;
+    
+    try {
+        return await callAI(system, prompt);
+    } catch (e) {
+        return "无法评估，请检查网络连接。";
+    }
 };

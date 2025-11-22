@@ -4,14 +4,15 @@ import { LESSONS, VOCABULARY_LIST, GRAMMAR_RULES } from '../constants';
 import { MillersDiary } from './MillersDiary';
 import { calculateLessonProgress, getTotalProgress } from '../utils/progress';
 import { SRSStatus } from '../types';
-import { PlayCircle, Lock, CheckCircle2, RotateCw, ArrowRight } from 'lucide-react';
+import { PlayCircle, Lock, CheckCircle2, RotateCw, ArrowRight, Mic } from 'lucide-react';
 
 interface DashboardProps {
   onSelectLesson: (lessonId: string) => void;
   onStartReview: () => void;
+  onStartSpeakingPrep: () => void;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ onSelectLesson, onStartReview }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ onSelectLesson, onStartReview, onStartSpeakingPrep }) => {
   const [progressData, setProgressData] = useState<Record<string, number>>({});
   const [totalProgress, setTotalProgress] = useState(0);
   const [dueCount, setDueCount] = useState(0);
@@ -51,29 +52,60 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectLesson, onStartRev
   return (
     <div className="space-y-8 animate-fade-in">
       
-      {/* Smart Review Call to Action */}
-      <button 
-        onClick={onStartReview}
-        className="w-full bg-white p-6 rounded-2xl border border-indigo-100 shadow-sm hover:shadow-md hover:border-indigo-300 transition-all group relative overflow-hidden text-left"
-      >
-        <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50 rounded-full -mr-10 -mt-10 z-0 group-hover:scale-110 transition-transform"></div>
-        <div className="relative z-10 flex justify-between items-center">
-            <div>
-                <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2 mb-1">
-                    <RotateCw className="text-indigo-600" />
-                    智能复习模式
-                </h2>
-                <p className="text-slate-500 text-sm">
-                    {dueCount > 0 
-                        ? `您有 ${dueCount} 个单词/语法需要复习。` 
-                        : "目前没有待复习的内容，去学点新词吧！"}
-                </p>
+      {/* Action Cards Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Smart Review Call to Action */}
+          <button 
+            onClick={onStartReview}
+            className="w-full bg-white p-6 rounded-2xl border border-indigo-100 shadow-sm hover:shadow-md hover:border-indigo-300 transition-all group relative overflow-hidden text-left h-full"
+          >
+            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50 rounded-full -mr-10 -mt-10 z-0 group-hover:scale-110 transition-transform"></div>
+            <div className="relative z-10 flex flex-col justify-between h-full">
+                <div>
+                    <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2 mb-2">
+                        <RotateCw className="text-indigo-600" />
+                        智能复习模式
+                    </h2>
+                    <p className="text-slate-500 text-sm leading-relaxed">
+                        {dueCount > 0 
+                            ? `您有 ${dueCount} 个单词/语法需要复习。` 
+                            : "目前没有待复习的内容，去学点新词吧！"}
+                    </p>
+                </div>
+                <div className="mt-4 text-indigo-600 font-bold text-sm flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                    开始复习 <ArrowRight size={16} />
+                </div>
             </div>
-            <div className="bg-indigo-600 text-white p-3 rounded-full shadow-lg shadow-indigo-200 group-hover:scale-110 transition-transform">
-                <ArrowRight size={24} />
+          </button>
+
+          {/* Hokudai Speaking Prep Card (NEW) */}
+          <button 
+            onClick={onStartSpeakingPrep}
+            className="w-full bg-gradient-to-br from-blue-600 to-indigo-700 p-6 rounded-2xl shadow-md text-white relative overflow-hidden group text-left h-full"
+          >
+            <div className="absolute top-0 right-0 w-40 h-40 bg-white opacity-10 rounded-full -mr-10 -mt-10 z-0 group-hover:scale-110 transition-transform"></div>
+            <div className="relative z-10 flex flex-col justify-between h-full">
+                <div>
+                    <div className="flex items-center gap-2 mb-2">
+                       <span className="bg-white/20 text-white text-[10px] font-bold px-2 py-0.5 rounded backdrop-blur-sm border border-white/30">
+                         HOKUDAI SPECIAL
+                       </span>
+                    </div>
+                    <h2 className="text-xl font-bold flex items-center gap-2 mb-2 text-white">
+                        <Mic className="text-blue-200" /> 口语考试特训
+                    </h2>
+                    <p className="text-blue-100 text-sm leading-relaxed opacity-90">
+                        专为北海道大学交换生定制。
+                        <br/>
+                        包含自我介绍、札幌生活、小樽旅行等必考话题。
+                    </p>
+                </div>
+                <div className="mt-4 text-white font-bold text-sm flex items-center gap-1 group-hover:translate-x-1 transition-transform bg-white/20 w-fit px-3 py-1.5 rounded-lg backdrop-blur-sm">
+                    进入特训 <ArrowRight size={16} />
+                </div>
             </div>
-        </div>
-      </button>
+          </button>
+      </div>
 
       {/* Top Section: Diary & Stats */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

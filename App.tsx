@@ -10,6 +10,7 @@ import { AITutor } from './components/AITutor';
 import { Dashboard } from './components/Dashboard';
 import { ApiKeyModal } from './components/ApiKeyModal';
 import { GlobalSearch } from './components/GlobalSearch';
+import { SpeakingExamPrep } from './components/SpeakingExamPrep';
 import { Book, PenTool, Layers, RotateCw, Mic, ArrowLeft, Home } from 'lucide-react';
 import { VOCABULARY_LIST, GRAMMAR_RULES, EXERCISES, LESSONS } from './constants';
 
@@ -17,6 +18,7 @@ const App: React.FC = () => {
   const [currentLessonId, setCurrentLessonId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'vocab' | 'grammar' | 'practice' | 'shadowing' | 'review'>('practice');
   const [isGlobalReviewMode, setIsGlobalReviewMode] = useState(false);
+  const [isSpeakingPrepMode, setIsSpeakingPrepMode] = useState(false);
   
   // Modals
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
@@ -27,7 +29,7 @@ const App: React.FC = () => {
   // Scroll to top when lesson changes
   useEffect(() => {
      window.scrollTo(0, 0);
-  }, [currentLessonId, activeTab, isGlobalReviewMode]);
+  }, [currentLessonId, activeTab, isGlobalReviewMode, isSpeakingPrepMode]);
 
   // Filter data based on current lesson
   const currentLesson = LESSONS.find(l => l.id === currentLessonId);
@@ -52,18 +54,27 @@ const App: React.FC = () => {
   // When navigating from search results
   const handleNavigate = (lessonId: string, tab: string) => {
     setIsGlobalReviewMode(false);
+    setIsSpeakingPrepMode(false);
     setCurrentLessonId(lessonId);
     setActiveTab(tab as any);
   };
 
   const handleStartReview = () => {
       setIsGlobalReviewMode(true);
+      setIsSpeakingPrepMode(false);
       setCurrentLessonId(null);
   };
 
-  const handleExitLesson = () => {
+  const handleStartSpeakingPrep = () => {
+      setIsSpeakingPrepMode(true);
+      setIsGlobalReviewMode(false);
+      setCurrentLessonId(null);
+  };
+
+  const handleExitAll = () => {
       setCurrentLessonId(null);
       setIsGlobalReviewMode(false);
+      setIsSpeakingPrepMode(false);
   };
 
   return (
@@ -81,7 +92,7 @@ const App: React.FC = () => {
                  <div className="flex items-center justify-between mb-6 bg-white p-4 rounded-xl border border-slate-100 shadow-sm sticky top-[4.5rem] z-20">
                     <div className="flex items-center gap-4">
                         <button 
-                            onClick={handleExitLesson}
+                            onClick={handleExitAll}
                             className="p-2 rounded-full hover:bg-slate-100 text-slate-500 transition-colors"
                         >
                             <ArrowLeft size={20} />
@@ -98,14 +109,19 @@ const App: React.FC = () => {
             </div>
         )}
 
-        {/* 2. Lesson View */}
-        {!isGlobalReviewMode && currentLessonId && (
+        {/* 2. Speaking Exam Prep Mode */}
+        {isSpeakingPrepMode && (
+          <SpeakingExamPrep onBack={handleExitAll} />
+        )}
+
+        {/* 3. Lesson View */}
+        {!isGlobalReviewMode && !isSpeakingPrepMode && currentLessonId && (
           <div className="animate-fade-in">
             {/* Active Lesson Navigation Bar */}
             <div className="flex items-center justify-between mb-6 bg-white p-4 rounded-xl border border-slate-100 shadow-sm sticky top-[4.5rem] z-20">
               <div className="flex items-center gap-4">
                 <button 
-                  onClick={handleExitLesson}
+                  onClick={handleExitAll}
                   className="p-2 rounded-full hover:bg-slate-100 text-slate-500 transition-colors"
                 >
                   <ArrowLeft size={20} />
@@ -118,7 +134,7 @@ const App: React.FC = () => {
                 </div>
               </div>
               <button 
-                 onClick={handleExitLesson}
+                 onClick={handleExitAll}
                  className="hidden md:flex items-center gap-1 text-sm font-bold text-slate-400 hover:text-teal-600 px-3 py-1.5 rounded-lg hover:bg-slate-50 transition-colors"
               >
                  <Home size={16} /> 首页
@@ -158,15 +174,19 @@ const App: React.FC = () => {
           </div>
         )}
 
-        {/* 3. Dashboard (Home) */}
-        {!isGlobalReviewMode && !currentLessonId && (
-          <Dashboard onSelectLesson={setCurrentLessonId} onStartReview={handleStartReview} />
+        {/* 4. Dashboard (Home) */}
+        {!isGlobalReviewMode && !isSpeakingPrepMode && !currentLessonId && (
+          <Dashboard 
+            onSelectLesson={setCurrentLessonId} 
+            onStartReview={handleStartReview}
+            onStartSpeakingPrep={handleStartSpeakingPrep}
+          />
         )}
 
       </main>
 
       {/* Mobile Navigation (Sticky Bottom) - Only in Lesson Mode */}
-      {!isGlobalReviewMode && currentLessonId && (
+      {!isGlobalReviewMode && !isSpeakingPrepMode && currentLessonId && (
         <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md border-t border-slate-200 flex justify-around p-1 z-40 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] pb-safe">
           <button onClick={() => setActiveTab('vocab')} className={`flex flex-col items-center p-2 rounded-lg w-16 ${activeTab === 'vocab' ? 'text-teal-600' : 'text-slate-400'}`}>
             <Book size={20} strokeWidth={activeTab === 'vocab' ? 2.5 : 2} />
